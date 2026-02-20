@@ -1,0 +1,26 @@
+body {
+  background: #f5f7fa;
+}
+
+.card {
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+.navbar-brand {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.btn-primary {
+  border-radius: 8px;
+}
+
+.table img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}

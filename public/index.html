@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Create User</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/styles.css" rel="stylesheet">
+</head>
+
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container">
+    <span class="navbar-brand">User Management App</span>
+
+    <div>
+      <a href="/users.html" class="btn btn-outline-light me-2">
+        View Users
+      </a>
+
+      <a href="/upload.html" class="btn btn-warning">
+        Upload CSV
+      </a>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-5">
+  <div class="card p-4">
+    <h3 class="mb-4">Create New User</h3>
+
+    <form id="form">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label>Name</label>
+          <input name="name" class="form-control" required>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label>Email</label>
+          <input name="email" type="email" class="form-control" required>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <label>Age</label>
+          <input name="age" class="form-control">
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <label>City</label>
+          <input name="city" class="form-control">
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <label>Profile Image</label>
+          <input type="file" name="image" class="form-control">
+        </div>
+      </div>
+
+      <button class="btn btn-primary">Save User</button>
+      <span id="msg" class="ms-3 text-success"></span>
+    </form>
+  </div>
+</div>
+
+<script>
+form.onsubmit = async e => {
+  e.preventDefault();
+  const data = new FormData(form);
+
+  const res = await fetch("/api/users", {
+    method: "POST",
+    body: data
+  });
+
+  const r = await res.json();
+  msg.innerText = r.message || "Saved";
+  form.reset();
+};
+</script>
+
+</body>
+</html>
