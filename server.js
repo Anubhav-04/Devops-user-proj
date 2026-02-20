@@ -96,6 +96,56 @@ app.delete("/api/users/:id", async (req, res) => {
   await User.findByIdAndDelete(req.params.id);
   res.json({ message: "User deleted" });
 });
+app.delete("/api/users", async (req, res) => {
+  try {
+    const { ids } = req.body;  // Array of user IDs
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "No user IDs provided" });
+    }
+
+    const result = await User.deleteMany({
+      _id: { $in: ids }
+    });
+
+    res.json({
+      message: "Users deleted successfully",
+      deletedCount: result.deletedCount
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅ Update User
+app.put("/api/users/:id", upload.single("image"), async (req, res) => {
+  try {
+    const updateData = {
+      name: req.body.name,
+      email: req.body.email,
+      age: req.body.age,
+      city: req.body.city
+    };
+
+    if (req.file) {
+      updateData.image = `/uploads/${req.file.filename}`;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { returnDocument: "after" }
+    );
+
+    res.json({ message: "User updated successfully", user: updatedUser });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 
 app.listen(process.env.PORT, () =>
   console.log(`Server running on port ${process.env.PORT}`)
