@@ -3,7 +3,6 @@ pipeline {
 
   options {
     timestamps()
-    ansiColor('xterm')
   }
   tools {
         nodejs "NodeJS" 
@@ -26,9 +25,10 @@ pipeline {
         sh 'npm install'
       }
     }
-    stage('Install python dependencies')
-        steps {
-            sh 'python3 --version'
+    stage('Install python dependencies'){
+      steps {
+        sh 'python3 --version'
         }
+  }
   }
 }
