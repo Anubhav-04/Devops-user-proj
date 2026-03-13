@@ -13,32 +13,42 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use("/uploads", express.static("uploads"));
 
-/* ---------- MongoDB ---------- */
+/* ---------------- MongoDB ---------------- */
 
-mongoose.connect(process.env.MONGO_URI)
+mongoose
+.connect(process.env.MONGO_URI)
 .then(() => console.log("MongoDB Connected"))
 .catch(err => console.log(err));
 
-/* ---------- Multer Config ---------- */
+/* ---------------- Multer Config ---------------- */
 
 const storage = multer.diskStorage({
   destination: "uploads/",
   filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
+    const safeName = path.basename(file.originalname);
+    cb(null, Date.now() + "-" + safeName);
   }
 });
 
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+});
 const csvUpload = multer({ dest: "uploads/" });
 
-/* ---------- APIs ---------- */
+/* ---------------- CREATE USER ---------------- */
 
-// ✅ Create user with image
 app.post("/api/users", upload.single("image"), async (req, res) => {
   try {
+
+    if (!req.body.name || !req.body.email) {
+      return res.status(500).json({ error: "Missing required fields" });
+    }
+
     const user = new User({
       name: req.body.name,
       email: req.body.email,
@@ -48,60 +58,158 @@ app.post("/api/users", upload.single("image"), async (req, res) => {
     });
 
     await user.save();
-    res.json({ message: "User saved", user });
+
+    res.json({
+      message: "User saved",
+      user
+    });
+
+  } catch (err) {
+
+  if (err.code === 11000) {
+    return res.status(500).json({ error: "Duplicate email" });
+  }
+
+  res.status(500).json({ error: err.message });
+}
+});
+
+/* ---------------- GET USERS ---------------- */
+
+app.get("/api/users", async (req, res) => {
+  try {
+    const users = await User.find();
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ---------------- SEARCH USERS ---------------- */
+
+app.get("/api/users/search", async (req, res) => {
+  try {
+
+    const name = req.query.name;
+    const email = req.query.email;
+
+    const query = {};
+
+    // Only allow string values (protects from NoSQL injection)
+    if (typeof name === "string" && name.trim() !== "") {
+      query.name = { $regex: name, $options: "i" };
+    }
+
+    if (typeof email === "string" && email.trim() !== "") {
+      query.email = { $regex: email, $options: "i" };
+    }
+
+    // If request has NO query parameters → return all users
+    if (Object.keys(req.query).length === 0) {
+      const users = await User.find();
+      return res.json(users);
+    }
+
+    // If query parameters exist but are invalid (e.g. name[$ne])
+    if (Object.keys(query).length === 0) {
+      return res.json([]);
+    }
+
+    const users = await User.find(query);
+    res.json(users);
 
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ✅ Get all users
-app.get("/api/users", async (req, res) => {
-  const users = await User.find();
-  res.json(users);
-});
+/* ---------------- CSV IMPORT ---------------- */
 
-// ✅ Search by name or email
-app.get("/api/users/search", async (req, res) => {
-  const { name, email } = req.query;
-
-  const users = await User.find({
-    $or: [
-      name ? { name: new RegExp(name, "i") } : null,
-      email ? { email: new RegExp(email, "i") } : null
-    ].filter(Boolean)
-  });
-
-  res.json(users);
-});
 app.post("/api/users/upload-csv", csvUpload.single("file"), async (req, res) => {
+
+  if (!req.file) {
+    return res.status(400).json({ error: "No CSV file uploaded" });
+  }
+
   const results = [];
 
-  fs.createReadStream(req.file.path)
-    .pipe(csv())
-    .on("data", (data) => results.push(data))
-    .on("end", async () => {
-      try {
-        await User.insertMany(results);
-        fs.unlinkSync(req.file.path); // cleanup
-        res.json({ message: "CSV users imported", count: results.length });
-      } catch (err) {
-        res.status(500).json({ error: err.message });
-      }
+  const stream = fs.createReadStream(req.file.path)
+    .pipe(csv());
+
+  stream.on("data", (data) => {
+    results.push({
+      name: data.name,
+      email: data.email,
+      age: data.age,
+      city: data.city
     });
+  });
+
+  stream.on("end", async () => {
+    try {
+
+      if (results.some(r => !r.email)) {
+        fs.unlinkSync(req.file.path);
+        return res.status(500).json({ error: "Missing email column" });
+      }
+
+      await User.insertMany(results);
+
+      fs.unlinkSync(req.file.path);
+
+      return res.json({
+        message: "CSV users imported",
+        count: results.length
+      });
+
+    } catch (err) {
+
+      fs.unlinkSync(req.file.path);
+
+      return res.status(500).json({ error: err.message });
+
+    }
+  });
+
+  stream.on("error", (err) => {
+    fs.unlinkSync(req.file.path);
+    return res.status(500).json({ error: "CSV processing failed" });
+  });
+
 });
 
-// ✅ Delete user
+/* ---------------- DELETE USER ---------------- */
+
 app.delete("/api/users/:id", async (req, res) => {
-  await User.findByIdAndDelete(req.params.id);
-  res.json({ message: "User deleted" });
-});
-app.delete("/api/users", async (req, res) => {
+
   try {
-    const { ids } = req.body;  // Array of user IDs
+
+    await User.findByIdAndDelete(req.params.id);
+
+    res.json({
+      message: "User deleted"
+    });
+
+  } catch (err) {
+
+    res.status(500).json({ error: err.message });
+
+  }
+
+});
+
+/* ---------------- BULK DELETE ---------------- */
+
+app.delete("/api/users", async (req, res) => {
+
+  try {
+
+    const { ids } = req.body;
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ message: "No user IDs provided" });
+      return res.status(400).json({
+        message: "No user IDs provided"
+      });
     }
 
     const result = await User.deleteMany({
@@ -114,19 +222,25 @@ app.delete("/api/users", async (req, res) => {
     });
 
   } catch (err) {
+
     res.status(500).json({ error: err.message });
+
   }
+
 });
 
-// ✅ Update User
+/* ---------------- UPDATE USER ---------------- */
+
 app.put("/api/users/:id", upload.single("image"), async (req, res) => {
+
   try {
-    const updateData = {
-      name: req.body.name,
-      email: req.body.email,
-      age: req.body.age,
-      city: req.body.city
-    };
+
+    const updateData = {};
+
+    if (req.body.name) updateData.name = req.body.name;
+    if (req.body.email) updateData.email = req.body.email;
+    if (req.body.age) updateData.age = req.body.age;
+    if (req.body.city) updateData.city = req.body.city;
 
     if (req.file) {
       updateData.image = `/uploads/${req.file.filename}`;
@@ -135,18 +249,24 @@ app.put("/api/users/:id", upload.single("image"), async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { returnDocument: "after" }
+      { new: true }
     );
 
-    res.json({ message: "User updated successfully", user: updatedUser });
+    res.json({
+      message: "User updated successfully",
+      user: updatedUser
+    });
 
   } catch (err) {
+
     res.status(500).json({ error: err.message });
+
   }
+
 });
 
+/* ---------------- START SERVER ---------------- */
 
-
-app.listen(process.env.PORT, () =>
-  console.log(`Server running on port ${process.env.PORT}`)
-);
+app.listen(process.env.PORT, () => {
+  console.log(`Server running on port ${process.env.PORT}`);
+});
