@@ -4,31 +4,37 @@ pipeline {
   options {
     timestamps()
   }
+
   tools {
-        nodejs "NodeJS" 
-    }
+    nodejs "NodeJS"
+  }
 
   stages {
+
     stage('Pre-clean') {
-        steps {
-            cleanWs()
-        }
-        }
+      steps {
+        cleanWs()
+      }
+    }
+
     stage('Checkout') {
       steps {
         checkout scm
       }
     }
 
-    stage('Install Dependencies') {
+    stage('Install Node Dependencies') {
       steps {
         sh 'npm install'
       }
     }
-    stage('Install python dependencies'){
+
+    stage('Install Python Dependencies') {
       steps {
         sh 'python3 --version'
-        }
-  }
+        sh 'pip3 install pytest requests'
+      }
+    }
+
   }
 }
