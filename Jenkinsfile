@@ -38,6 +38,28 @@ pipeline {
             '''
         }
 }
+    stage('Build & Push Docker Image') {
+        steps {
+            withCredentials([usernamePassword(
+            credentialsId: 'docker-hub-cred',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+            )]) {
+            sh '''
+                echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                
+                docker build -t $DOCKER_USER/my-app:latest .
+            '''
+            }
+        }
+}
 
+    stage('Run API for testing') {
+      steps {
+        sh '''
+            docker images
+        '''
+      }
+    }
   }
 }
