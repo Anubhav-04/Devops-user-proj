@@ -32,7 +32,7 @@ pipeline {
     stage('Install Python Dependencies') {
       steps {
         sh 'python3 --version'
-        sh 'pip3 install pytest requests'
+        sh 'pip3 --version'
       }
     }
 
