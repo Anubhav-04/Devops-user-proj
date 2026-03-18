@@ -1,5 +1,10 @@
 pipeline {
-  agent any
+  agent {
+  docker {
+    image 'docker:24.0.5'
+    args '-v /var/run/docker.sock:/var/run/docker.sock'
+  }
+}
 
   options {
     timestamps()
