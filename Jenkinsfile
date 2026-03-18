@@ -7,6 +7,7 @@ pipeline {
 
   tools {
     nodejs "NodeJS"
+    docker "docker-dependencies"
   }
 
   stages {
