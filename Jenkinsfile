@@ -52,10 +52,20 @@ pipeline {
 }
 
     stage('Run API for testing') {
-      steps {
-        sh 'docker run -d -p $PORT:$PORT --env PORT=$PORT --env MONGO_URI=$MONGO_URI --name users-container $DOCKER_USER/user-app:latest'
-      }
-    }
+  steps {
+    sh '''
+      docker network create my-network || true
+
+      docker run -d \
+        --network my-network \
+        -p $PORT:$PORT \
+        -e PORT=$PORT \
+        -e MONGO_URI=$MONGO_URI \
+        --name users-container \
+        $DOCKER_USER/user-app:latest
+    '''
+  }
+}
 
     stage('wait for container to start') {
         steps {
@@ -68,7 +78,7 @@ pipeline {
             python3 -m venv venv
             . venv/bin/activate
             pip install -r requirements.txt
-            pytest allTest.py -v
+            pytest allTestJ.py -v
             '''
         }
     }
