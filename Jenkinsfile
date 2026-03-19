@@ -35,16 +35,7 @@ pipeline {
       }
     }
 
-    stage('Install Python Dependencies') {
-        steps {
-            sh '''
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install -r requirements.txt
-            '''
-        }
-}
-    stage('Build & Push Docker Image') {
+    stage('Build Docker Image') {
         steps {
             withCredentials([usernamePassword(
             credentialsId: 'docker-hub-cred',
@@ -71,9 +62,22 @@ pipeline {
             sh 'sleep 10'
         }
     }
-    stage('Start Testing') {
+    stage('Install Python Dependencies and start testing') {
         steps {
-            sh 'pytest allTest.py -v'
+            sh '''
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r requirements.txt
+            pytest allTest.py -v
+            '''
+        }
+
+    post {
+        always {
+            sh '''
+                docker rm -f users-container || true
+                docker rmi $DOCKER_USER/user-app:latest
+            '''
         }
     }
   }
