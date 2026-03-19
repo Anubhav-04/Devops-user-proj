@@ -12,6 +12,7 @@ pipeline {
     environment {
         PORT = credentials('PORT')
         MONGO_URI = credentials('MONGO_URI')
+        DOCKER_USER = credentials('DOCKER_USER')
     }
 
   stages {
