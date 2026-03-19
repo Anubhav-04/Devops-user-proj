@@ -71,6 +71,7 @@ pipeline {
             pytest allTest.py -v
             '''
         }
+    }
 
     post {
         always {
