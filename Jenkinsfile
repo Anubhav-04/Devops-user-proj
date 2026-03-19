@@ -9,6 +9,11 @@ pipeline {
     nodejs "NodeJS"
   }
 
+    environment {
+        PORT = credentials('PORT')
+        MONGO_URI = credentials('MONGO_URI')
+    }
+
   stages {
 
     stage('Pre-clean') {
@@ -48,7 +53,7 @@ pipeline {
             sh '''
                 echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
                 
-                docker build -t $DOCKER_USER/my-app:latest .
+                docker build -t $DOCKER_USER/user-app:latest .
             '''
             }
         }
@@ -57,9 +62,27 @@ pipeline {
     stage('Run API for testing') {
       steps {
         sh '''
-            docker images
+            docker rm -f users-container || true
+
+            docker run -d \
+                -p $PORT:$PORT \
+                --env PORT=$PORT \
+                --env MONGO_URI=$MONGO_URI \
+                --name users-container \
+                $DOCKER_USER/user-app:latest
         '''
       }
+    }
+
+    stage('wait for container to start') {
+        steps {
+            sh 'sleep 10'
+        }
+    }
+    stage('Start Testing') {
+        steps {
+            sh 'pytest allTest.py -v'
+        }
     }
   }
 }
