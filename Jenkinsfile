@@ -72,7 +72,7 @@ pipeline {
             '''
         }
     }
-
+  }
     post {
         always {
             sh '''
@@ -81,5 +81,4 @@ pipeline {
             '''
         }
     }
-  }
 }
