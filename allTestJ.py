@@ -7,7 +7,7 @@ import csv
 import time
 from pathlib import Path
 
-BASE_URL = "http://users-container:3000"
+BASE_URL = "http//host.docker.internal:3000"
 
 # ----------------------------------------------------------------------
 # Fixtures

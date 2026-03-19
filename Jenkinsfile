@@ -69,7 +69,10 @@ pipeline {
 
     stage('wait for container to start') {
         steps {
-            sh 'sleep 10'
+            sh '''
+                sleep 10
+                curl -s http//host.docker.internal:$PORT
+            '''
         }
     }
     stage('Install Python Dependencies and start testing') {
