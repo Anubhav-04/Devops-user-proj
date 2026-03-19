@@ -71,7 +71,7 @@ pipeline {
         steps {
             sh '''
                 sleep 10
-                curl -s http//host.docker.internal:$PORT
+                curl -s http://host.docker.internal:$PORT
             '''
         }
     }
