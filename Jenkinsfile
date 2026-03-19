@@ -85,6 +85,13 @@ pipeline {
             '''
         }
     }
+    stage('Push app Image to Docker hub repository') {
+        steps {
+            sh '''
+                docker push $DOCKER_USER/user-app:latest
+            '''
+        }
+    }
   }
     post {
         always {
