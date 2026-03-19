@@ -61,16 +61,7 @@ pipeline {
 
     stage('Run API for testing') {
       steps {
-        sh '''
-            docker rm -f users-container || true
-
-            docker run -d \
-                -p $PORT:$PORT \
-                --env PORT=$PORT \
-                --env MONGO_URI=$MONGO_URI \
-                --name users-container \
-                $DOCKER_USER/user-app:latest
-        '''
+        sh 'docker run -d -p $PORT:$PORT --env PORT=$PORT --env MONGO_URI=$MONGO_URI --name users-container $DOCKER_USER/user-app:latest'
       }
     }
 
